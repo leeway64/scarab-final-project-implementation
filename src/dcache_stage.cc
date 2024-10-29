@@ -25,12 +25,16 @@
  * Date         : 3/8/1999
  * Description  :
  ***************************************************************************************/
+#include "globals/global_types.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "debug/debug_macros.h"
 #include "debug/debug_print.h"
 #include "globals/assert.h"
 #include "globals/global_defs.h"
-#include "globals/global_types.h"
 #include "globals/global_vars.h"
 #include "globals/utils.h"
 
@@ -91,7 +95,7 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
 
   /* initialize the cache structure */
   init_cache(&dc->dcache, "DCACHE", DCACHE_SIZE, DCACHE_ASSOC, DCACHE_LINE_SIZE,
-             sizeof(Dcache_Data), DCACHE_REPL);
+             sizeof(Dcache_Data), (Repl_Policy) DCACHE_REPL);
 
   reset_dcache_stage();
 
@@ -108,7 +112,7 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
   if(DC_PREF_CACHE_ENABLE)
     init_cache(&dc->pref_dcache, "DC_PREF_CACHE", DC_PREF_CACHE_SIZE,
                DC_PREF_CACHE_ASSOC, DCACHE_LINE_SIZE, sizeof(Dcache_Data),
-               DCACHE_REPL);
+               (Repl_Policy) DCACHE_REPL);
 
   memset(dc->rand_wb_state, 0, NUM_ELEMENTS(dc->rand_wb_state));
 }
@@ -164,7 +168,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
   // {{{ phase 1 - move ops into the dcache stage
   ASSERT(dc->proc_id, src_sd->max_op_count == dc->sd.max_op_count);
-  for(ii = 0; ii < src_sd->max_op_count; ii++) {
+  for(ii = 0; ii < (uns) src_sd->max_op_count; ii++) {
     Op* op    = src_sd->ops[ii];
     Op* dc_op = dc->sd.ops[ii];
 
@@ -233,14 +237,14 @@ void update_dcache_stage(Stage_Data* src_sd) {
   // {{{ phase 2 - update in program order (make things easier)
   start_op_count     = dc->sd.op_count;
   last_oldest_op_num = 0;
-  for(ii = 0; ii < start_op_count; ii++) {
+  for(ii = 0; ii < (uns) start_op_count; ii++) {
     Op*  op;
     uns  bank;
     Flag wrongpath_dcmiss = FALSE;
 
     oldest_index  = 0;
     oldest_op_num = MAX_CTR;
-    for(jj = 0; jj < dc->sd.max_op_count; jj++)
+    for(jj = 0; jj < (uns) dc->sd.max_op_count; jj++)
       if(dc->sd.ops[jj] && dc->sd.ops[jj]->op_num > last_oldest_op_num &&
          dc->sd.ops[jj]->op_num < oldest_op_num) {
         oldest_op_num = dc->sd.ops[jj]->op_num;
@@ -602,8 +606,8 @@ Flag dcache_fill_line(Mem_Req* req) {
   cycle_count             = freq_cycle_count(FREQ_DOMAIN_CORES[req->proc_id]);
 
   ASSERT(dc->proc_id, dc->proc_id == req->proc_id);
-  ASSERT(dc->proc_id, req->op_count == req->op_ptrs.count);
-  ASSERT(dc->proc_id, req->op_count == req->op_uniques.count);
+  ASSERT(dc->proc_id, req->op_count == (uns) req->op_ptrs.count);
+  ASSERT(dc->proc_id, req->op_count == (uns) req->op_uniques.count);
 
   /* if it can't get a write port, fail */
   if(!get_write_port(&dc->ports[bank])) {
@@ -892,3 +896,8 @@ void wp_process_dcache_fill(Dcache_Data* line, Mem_Req* req) {
     }
   }
 }
+
+
+#ifdef __cplusplus
+}
+#endif
