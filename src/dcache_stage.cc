@@ -26,6 +26,10 @@
  * Description  :
  ***************************************************************************************/
 #include "globals/global_types.h"
+#include <set>
+#include <unordered_map>
+// std::vector<Addr> shadow_cache{};
+std::set<Addr> address_set{};
 
 #ifdef __cplusplus
 extern "C" {
@@ -290,6 +294,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
     line = (Dcache_Data*)cache_access(&dc->dcache, op->oracle_info.va,
                                       &line_addr, TRUE);
+    // LW
     op->dcache_cycle = cycle_count;
     dc->idle_cycle   = MAX2(dc->idle_cycle, cycle_count + DCACHE_CYCLES);
 
@@ -371,6 +376,19 @@ void update_dcache_stage(Stage_Data* src_sd) {
         wake_up_ops(op, REG_DATA_DEP, model->wake_hook);
       }
     } else {  // data cache miss
+    // LW
+      if (!address_set.count(line_addr))
+      {
+        STAT_EVENT(op->proc_id, DCACHE_MISS_COMPULSORY);
+      }
+      else
+      {
+        if (1)
+        {
+          STAT_EVENT(op->proc_id, DCACHE_MISS_CAPACITY);
+        }
+        STAT_EVENT(op->proc_id, DCACHE_MISS_CONFLICT);
+      }
       if(op->table_info->mem_type == MEM_ST)
         STAT_EVENT(op->proc_id, POWER_DCACHE_WRITE_MISS);
       else
@@ -378,6 +396,8 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
       if(CACHE_STAT_ENABLE)
         dc_miss_stat(op);
+  
+      address_set.insert(line_addr);
 
       if(op->table_info->mem_type == MEM_LD) {  // load request
         if(((model->mem == MODEL_MEM) &&
