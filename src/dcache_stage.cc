@@ -26,14 +26,13 @@
  * Description  :
  ***************************************************************************************/
 #include "globals/global_types.h"
-#include <set>
-#include <unordered_map>
-// std::vector<Addr> shadow_cache{};
-std::set<Addr> address_set{};
+#include <unordered_set>
+std::unordered_set<Addr> address_set{};
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 #include "debug/debug_macros.h"
 #include "debug/debug_print.h"
@@ -100,6 +99,9 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
   /* initialize the cache structure */
   init_cache(&dc->dcache, "DCACHE", DCACHE_SIZE, DCACHE_ASSOC, DCACHE_LINE_SIZE,
              sizeof(Dcache_Data), (Repl_Policy) DCACHE_REPL);
+  
+  init_cache(&dc->dummy_cache, "Dummy cache", DCACHE_SIZE, DCACHE_SIZE / DCACHE_LINE_SIZE, DCACHE_LINE_SIZE,
+             sizeof(Dcache_Data), (Repl_Policy) DCACHE_REPL);
 
   reset_dcache_stage();
 
@@ -164,6 +166,7 @@ void debug_dcache_stage() {
 /* update_dcache_stage: */
 void update_dcache_stage(Stage_Data* src_sd) {
   Dcache_Data* line;
+  Dcache_Data* dummy_cache_line;
   Counter      oldest_op_num, last_oldest_op_num;
   uns          oldest_index;
   int          start_op_count;
@@ -294,7 +297,8 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
     line = (Dcache_Data*)cache_access(&dc->dcache, op->oracle_info.va,
                                       &line_addr, TRUE);
-    // LW
+    dummy_cache_line = (Dcache_Data*) cache_access(&dc->dummy_cache, op->oracle_info.va,
+                                      &line_addr, TRUE);
     op->dcache_cycle = cycle_count;
     dc->idle_cycle   = MAX2(dc->idle_cycle, cycle_count + DCACHE_CYCLES);
 
@@ -376,19 +380,24 @@ void update_dcache_stage(Stage_Data* src_sd) {
         wake_up_ops(op, REG_DATA_DEP, model->wake_hook);
       }
     } else {  // data cache miss
-    // LW
+      // LW
+      // If the cache has never seen the address before, then it's a compulsory miss
       if (!address_set.count(line_addr))
       {
         STAT_EVENT(op->proc_id, DCACHE_MISS_COMPULSORY);
       }
-      else
+      else if (dummy_cache_line)
       {
-        if (1)
-        {
-          STAT_EVENT(op->proc_id, DCACHE_MISS_CAPACITY);
-        }
         STAT_EVENT(op->proc_id, DCACHE_MISS_CONFLICT);
       }
+      else if (!dummy_cache_line)
+      {
+        STAT_EVENT(op->proc_id, DCACHE_MISS_CAPACITY);
+      }
+
+      address_set.insert(line_addr);
+
+
       if(op->table_info->mem_type == MEM_ST)
         STAT_EVENT(op->proc_id, POWER_DCACHE_WRITE_MISS);
       else
@@ -396,8 +405,6 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
       if(CACHE_STAT_ENABLE)
         dc_miss_stat(op);
-  
-      address_set.insert(line_addr);
 
       if(op->table_info->mem_type == MEM_LD) {  // load request
         if(((model->mem == MODEL_MEM) &&
@@ -617,6 +624,7 @@ Flag dcache_fill_line(Mem_Req* req) {
              N_BIT_MASK(LOG2(DCACHE_BANKS));
   Dcache_Data* data;
   Addr         line_addr, repl_line_addr;
+  Addr        dummy_line_address, dummy_repl_line_address
   Op*          op;
   Op**         op_p  = (Op**)list_start_head_traversal(&req->op_ptrs);
   Counter* op_unique = (Counter*)list_start_head_traversal(&req->op_uniques);
@@ -701,6 +709,13 @@ Flag dcache_fill_line(Mem_Req* req) {
 
     data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req->addr,
                                       &line_addr, &repl_line_addr);
+    
+    if (!cache_access(&dc->dummy_cache, req->addr, &line_addr, FALSE))
+    {
+      // if its already in there, don't do anything
+      (Dcache_Data*) cache_insert(&dc->dummy_cache, dc->proc_id, req->addr, &dummy_line_address, &dummy_repl_line_address);
+    }
+    
     DEBUG(dc->proc_id,
           "Filling dcache  off_path:%d addr:0x%s  :%7d index:%7d op_count:%d "
           "oldest:%lld\n",
