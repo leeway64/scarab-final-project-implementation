@@ -9,4 +9,4 @@ SWQUE (switch issuing queue) is a technique created by Hideki Ando aimed at impr
 
 ### Project Checkin
 
-Curently a majority of the work is being done at the moment within the UOP_QUEUE_STAGE.CC file within the Scarab source code, we are currently mapping things out still so we have written comments with what needs to go where just to have a frame work to begin with. We have also made a another repo with our circular queue implementation, please check out [PIN](https://github.com/leeway64/scarab-final-project-implementation)
+Curently a majority of the work is being done at the moment within the UOP_QUEUE_STAGE.CC file within the Scarab source code, we are currently mapping things out still so we have written comments with what needs to go where just to have a frame work to begin with. We have also made a another repo with our circular queue implementation, please check out our [GitHub](https://github.com/leeway64/CSE-220-final-project-proof-of-concept) to see the proof of concept.
