@@ -2,7 +2,7 @@
 
 ## BY Lee-Way Wang and Octavio Villalobos
 
-The technique that we are implementing is SWQUE: A Mode Switching Issue Queue with Priority-Correcting Circular Queue, originally proposed by Hideki Ando.
+The technique that we are implementing is [SWQUE: A Mode Switching Issue Queue with Priority-Correcting Circular Queue](https://dl.acm.org/doi/pdf/10.1145/3352460.3358293), originally proposed by Hideki Ando.
 
 SWQUE (switch issuing queue) is a technique created by Hideki Ando aimed at improving single-thread performance by modifying the already issue queue (AGE technique) and changing it to a combination of both a CIRC-PC (circular queue) and AGE (random queue with an age matrix). The goal of this technique is to achieve correct prioritization of instruction and high capacity efficiency. Regarding lower capacity phases, which indicate they are more priority-sensitive, SWQUE will utilize the modified CIRC-PC. When it is in a more capacity-demanding phase, meaning we have many instructions, it will operate in the typical AGE technique (Ando 506).
 

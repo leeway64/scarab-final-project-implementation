@@ -28,6 +28,10 @@ extern "C" {
 
 // Uop Queue Variables
 std::deque<Stage_Data*> q {};
+/**************Leeway*******************
+Add circular queue here
+Add current mode (SWQUE or queue)
+***************************************/
 std::deque<Stage_Data*> free_sds {};
 
 // For uop queue fill stat
@@ -37,6 +41,12 @@ std::size_t prev_q_size {};
 bool uopq_off_path;
 
 static inline void update_uop_queue_fill_time_stat(void);
+
+/**************Octavio*******************
+Create a function that calcualtes priority
+Based off how critical the path of the process 
+is for assigning priority to SWQUE instruction
+***************************************/
 
 void init_uop_queue_stage() {
   char tmp_name[MAX_STR_LENGTH + 1];
@@ -50,6 +60,9 @@ void init_uop_queue_stage() {
     free_sds.push_back(sd);
   }
 
+  //This handles statistics of the queue and operations, look at these in order to 
+  //see how the flow of operation is going to switch between our own queue and the 
+  //premade queue
   for (int cap_measured = 0; cap_measured < UOP_QUEUE_CAPACITY_MAX_MEASURED; cap_measured++) {
     char cycle_list_label[] = "Cycles to fill uop queue to size";
     char pw_list_label[] = "PWs to fill uop queue to size";
@@ -66,6 +79,7 @@ void init_uop_queue_stage() {
 // Get ops from the uop cache.
 void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
+  // Update both queue and circular queue as well (NOTE FOR LEEWAY)
   if (q.size() && q.front()->op_count == 0) {
     free_sds.push_back(q.front());
     q.pop_front();
@@ -77,6 +91,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
     STAT_EVENT(dec->proc_id, UOPQ_STAGE_OFF_PATH);
   }
   // If the queue cannot accomodate more ops, stall.
+  // Switch to SWQUE (NOTE FOR Octavio)
   if (q.size() >= UOP_QUEUE_STAGE_LENGTH) {
     // Backend stalls may force fetch to stall.
     if (!uopq_off_path) {
@@ -89,6 +104,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
   }
 
   // Build a new sd and place new ops into the queue.
+  // ALso update for our other queue as well (NOTE FOR LEEWAY)
   Stage_Data* new_sd = free_sds.front();
   ASSERT(0, src_sd->op_count <= (int)STAGE_MAX_OP_COUNT);
   if (src_sd->op_count) {
