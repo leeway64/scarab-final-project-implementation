@@ -18,6 +18,10 @@ extern "C" {
 #include "statistics.h"
 #include "memory/memory.param.h"
 #include "uop_cache.h"
+// include external variabls
+#include "icache_stage.h"
+#include "dcache_stage.h"
+#include "node_stage.h"
 }
 
 // Macros
@@ -25,13 +29,22 @@ extern "C" {
 #define UOP_QUEUE_STAGE_LENGTH UOP_QUEUE_LENGTH
 #define STAGE_MAX_OP_COUNT ISSUE_WIDTH  // The bandwidth of the next, consuming stage (map stage)
 // TODO(peterbraun): Check if the ISSUE_WIDTH can be less than the uop cache issue bandwidth
+/**************Octavio*******************/
+// change later
+#define MPKI_THRESHOLD 1.0
+#define FLPI_THRESHOLD 1.0
+/***************************************/
 
 // Uop Queue Variables
 std::deque<Stage_Data*> q {};
-/**************Leeway*******************
-Add circular queue here
-Add current mode (SWQUE or queue)
-***************************************/
+// Add circular queue here
+// Add current mode (SWQUE or queue)
+/**************Octavio*******************/
+int mpki_counter = 0;
+int mpki = 0;
+int flpi = 0;
+bool circ_queue = false;
+/***************************************/
 std::deque<Stage_Data*> free_sds {};
 
 // For uop queue fill stat
@@ -75,6 +88,35 @@ void init_uop_queue_stage() {
               sizeof(Counter), FALSE);
   }
 }
+
+/**************Octavio*******************/
+void calculate_mpki(){
+  if((icache_miss_count - dcache_miss_count) > 0){
+    mpki_counter = icache_miss_count - (icache_miss_count - dcache_miss_count)
+  }
+  else{
+    mpki_counter = dcache_miss_count - (dcache_miss_count - icache_miss_count)
+  }
+}
+
+void calculate_flpi(){
+  if (issued_count>0){
+    // define low priority later when circulare queue is ready to go 
+    flpi = issued_count/low_priority_issues 
+  }
+}
+
+void switch_modes(){
+  calculate_flpi();
+  calculate_mpki();
+  if(mpki_counter > MPKI_THRESHOLD || flpi_counter > FLPI_THRESHOLD){
+    circ_queue = true;
+  }
+  else{
+    circ_queue = false;
+  }
+}
+/***************************************/
 
 // Get ops from the uop cache.
 void update_uop_queue_stage(Stage_Data* src_sd) {

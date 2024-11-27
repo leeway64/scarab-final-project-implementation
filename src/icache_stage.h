@@ -133,7 +133,7 @@ typedef struct Icache_Data_struct {
 /* External Variables */
 
 extern Icache_Stage* ic;
-
+extern int icache_miss_count;
 /**************************************************************************************/
 /* Prototypes */
 

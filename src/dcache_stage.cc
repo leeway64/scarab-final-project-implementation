@@ -69,6 +69,7 @@ extern "C" {
 /* Global Variables */
 
 Dcache_Stage* dc = NULL;
+int dcache_miss_count = 0;
 
 /**************************************************************************************/
 /* set_dcache_stage: */
@@ -458,6 +459,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_MISS);
+            dcache_miss_count++;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH);
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD_ONPATH);
             op->oracle_info.dcmiss = TRUE;
@@ -513,6 +515,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_MISS);
+            dcache_miss_count++;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH);
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD_ONPATH);
             op->oracle_info.dcmiss = TRUE;
@@ -571,6 +574,7 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_MISS);
+            dcache_miss_count++;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH);
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST_ONPATH);
             op->oracle_info.dcmiss = TRUE;

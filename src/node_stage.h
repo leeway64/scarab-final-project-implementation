@@ -77,6 +77,8 @@ typedef struct Node_Stage_struct {
 // External Variables
 
 extern Node_Stage* node;
+extern retired_instructions;
+extern issued_count;
 
 
 /**************************************************************************************/

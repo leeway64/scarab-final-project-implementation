@@ -13,6 +13,20 @@ extern "C" {
 #include "decode_stage.h"
 #include "uop_cache.h"
 
+// Change these Thresh Holds later on (Octavio Villalobos)
+#define MPKI_THRESHOLD 1.0 
+#define FLPI_THRESHOLD 1 
+
+// struct mode_switch_measures{
+//     Counter llc_misses;
+//     Counter retired_instructions;
+//     double mpki;
+
+//     Counter low_priority_issues;
+//     Counter total_issues;
+//     double flpi;
+// }
+
 void init_uop_queue_stage(void);
 void update_uop_queue_stage(Stage_Data* src_sd);
 void recover_uop_queue_stage(void);

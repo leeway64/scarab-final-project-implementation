@@ -83,6 +83,7 @@ typedef struct Dcache_Data_struct {
 /* External variables */
 
 extern Dcache_Stage* dc;
+extern int dcache_miss_count;
 
 /**************************************************************************************/
 /* Prototypes */

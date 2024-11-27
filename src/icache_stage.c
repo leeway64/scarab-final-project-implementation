@@ -71,7 +71,8 @@
 
 /**************************************************************************************/
 /* Global Variables */
-
+//Octavio Miss counter
+int icache_miss_count = 0;
 /**************************************************************************************/
 
 Icache_Stage* ic = NULL;
@@ -1302,6 +1303,7 @@ int32_t inst_lost_get_full_window_reason() {
 
 void log_stats_ic_miss() {
   STAT_EVENT(ic->proc_id, ICACHE_MISS);
+  icache_miss_count++;
   STAT_EVENT(ic->proc_id, POWER_ICACHE_MISS);
   STAT_EVENT(ic->proc_id, ICACHE_MISS_ONPATH + ic->off_path);
 }

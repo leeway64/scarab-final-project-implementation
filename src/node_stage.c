@@ -71,6 +71,8 @@
 Node_Stage*            node                   = NULL;
 Rob_Stall_Reason       rob_stall_reason       = ROB_STALL_NONE;
 Rob_Block_Issue_Reason rob_block_issue_reason = ROB_BLOCK_ISSUE_NONE;
+int retired_instructions = 0;
+int issued_count = 0;
 
 
 /**************************************************************************************/
@@ -385,6 +387,7 @@ void update_node_stage(Stage_Data* src_sd) {
 
   /* insert ops coming from the previous stage*/
   node_issue(src_sd);
+  issued_count++;
 
   /* remove scheduled ops from RS and ready list */
   node_handle_scheduled_ops();
@@ -772,6 +775,7 @@ void node_retire() {
                OP_WAIT_0 + MIN2(op->sched_cycle - real_rdy_cycle, 31));
     STAT_EVENT(op->proc_id, OP_RETIRED);  // Counts all ops retired, not just
                                           // those in primary thread
+    retired_instructions++;
 
     DEBUG(node->proc_id, "Retiring op_num:%s\n", unsstr64(op->op_num));
 
