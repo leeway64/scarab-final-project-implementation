@@ -101,6 +101,8 @@ void init_dcache_stage(uns8 proc_id, const char* name) {
   init_cache(&dc->dcache, "DCACHE", DCACHE_SIZE, DCACHE_ASSOC, DCACHE_LINE_SIZE,
              sizeof(Dcache_Data), (Repl_Policy) DCACHE_REPL);
   
+  // Initialize dummy cache. The dummy cache is meant to be fully associative, which is why
+  // associativity = DCACHE_SIZE / DCACHE_LINE_SIZE
   init_cache(&dc->dummy_cache, "Dummy cache", DCACHE_SIZE, DCACHE_SIZE / DCACHE_LINE_SIZE, DCACHE_LINE_SIZE,
              sizeof(Dcache_Data), (Repl_Policy) DCACHE_REPL);
 
@@ -295,9 +297,10 @@ void update_dcache_stage(Stage_Data* src_sd) {
       ideal_l2l1_prefetcher(op);
 
     /* now access the dcache with it */
-
     line = (Dcache_Data*)cache_access(&dc->dcache, op->oracle_info.va,
                                       &line_addr, TRUE);
+    
+    // Access dummy cache as well
     dummy_cache_line = (Dcache_Data*) cache_access(&dc->dummy_cache, op->oracle_info.va,
                                       &line_addr, TRUE);
     op->dcache_cycle = cycle_count;
@@ -381,7 +384,6 @@ void update_dcache_stage(Stage_Data* src_sd) {
         wake_up_ops(op, REG_DATA_DEP, model->wake_hook);
       }
     } else {  // data cache miss
-      // LW
       // If the cache has never seen the address before, then it's a compulsory miss
       if (!address_set.count(line_addr))
       {
@@ -389,10 +391,14 @@ void update_dcache_stage(Stage_Data* src_sd) {
       }
       else if (dummy_cache_line)
       {
+        // If there is a miss in the dCache but a hit in the fully associative dummy cache, then
+        // it's a conflict miss
         STAT_EVENT(op->proc_id, DCACHE_MISS_CONFLICT);
       }
       else if (!dummy_cache_line)
       {
+        // If there is a hit in both the dCache and the fully associative dummy cache, then it's a
+        // capacity miss
         STAT_EVENT(op->proc_id, DCACHE_MISS_CAPACITY);
       }
 
@@ -459,7 +465,6 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_MISS);
-            dcache_miss_count++;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH);
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD_ONPATH);
             op->oracle_info.dcmiss = TRUE;
@@ -515,7 +520,6 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_MISS);
-            dcache_miss_count++;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH);
             STAT_EVENT(op->proc_id, DCACHE_MISS_LD_ONPATH);
             op->oracle_info.dcmiss = TRUE;
@@ -574,7 +578,6 @@ void update_dcache_stage(Stage_Data* src_sd) {
 
           if(!op->off_path) {
             STAT_EVENT(op->proc_id, DCACHE_MISS);
-            dcache_miss_count++;
             STAT_EVENT(op->proc_id, DCACHE_MISS_ONPATH);
             STAT_EVENT(op->proc_id, DCACHE_MISS_ST_ONPATH);
             op->oracle_info.dcmiss = TRUE;
@@ -628,7 +631,7 @@ Flag dcache_fill_line(Mem_Req* req) {
              N_BIT_MASK(LOG2(DCACHE_BANKS));
   Dcache_Data* data;
   Addr         line_addr, repl_line_addr;
-  Addr        dummy_line_address, dummy_repl_line_address
+  Addr         dummy_line_address, dummy_repl_line_address;
   Op*          op;
   Op**         op_p  = (Op**)list_start_head_traversal(&req->op_ptrs);
   Counter* op_unique = (Counter*)list_start_head_traversal(&req->op_uniques);
@@ -714,9 +717,10 @@ Flag dcache_fill_line(Mem_Req* req) {
     data = (Dcache_Data*)cache_insert(&dc->dcache, dc->proc_id, req->addr,
                                       &line_addr, &repl_line_addr);
     
+    // Insert data into the dummy cache. If the data has already been inserted into the dummy
+    // cache, don't insert anything.
     if (!cache_access(&dc->dummy_cache, req->addr, &line_addr, FALSE))
     {
-      // if its already in there, don't do anything
       (Dcache_Data*) cache_insert(&dc->dummy_cache, dc->proc_id, req->addr, &dummy_line_address, &dummy_repl_line_address);
     }
     

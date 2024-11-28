@@ -46,6 +46,7 @@ typedef struct Dcache_Stage_struct {
   Stage_Data sd; /* stage interface data */
 
   Cache  dcache;      /* the data cache */
+  Cache dummy_cache;
   Ports* ports;       /* read and write ports to the data cache (per bank) */
   Cache  pref_dcache; /* prefetcher cache for data cache */
 

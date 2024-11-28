@@ -1,6 +1,8 @@
 // The uop queue buffers ops fetched from the uop cache.
 
 #include "uop_queue_stage.h"
+#include "CircularQueue.h"
+
 #include <deque>
 
 extern "C" {
@@ -32,11 +34,12 @@ extern "C" {
 /**************Octavio*******************/
 // change later
 #define MPKI_THRESHOLD 1.0
-#define FLPI_THRESHOLD 1.0
 /***************************************/
 
 // Uop Queue Variables
 std::deque<Stage_Data*> q {};
+CircularQueue<Stage_Data*> cq(3);
+
 // Add circular queue here
 // Add current mode (SWQUE or queue)
 /**************Octavio*******************/
@@ -92,30 +95,31 @@ void init_uop_queue_stage() {
 /**************Octavio*******************/
 void calculate_mpki(){
   if((icache_miss_count - dcache_miss_count) > 0){
-    mpki_counter = icache_miss_count - (icache_miss_count - dcache_miss_count)
+    mpki_counter = icache_miss_count - (icache_miss_count - dcache_miss_count);
   }
   else{
-    mpki_counter = dcache_miss_count - (dcache_miss_count - icache_miss_count)
+    mpki_counter = dcache_miss_count - (dcache_miss_count - icache_miss_count);
   }
 }
 
-void calculate_flpi(){
-  if (issued_count>0){
-    // define low priority later when circulare queue is ready to go 
-    flpi = issued_count/low_priority_issues 
-  }
-}
+// Uncomment after circular queue has been implemented
+// void calculate_flpi(){
+//   if (issued_count>0){
+//     // define low priority later when circulare queue is ready to go 
+//     flpi = issued_count/low_priority_issues;
+//   }
+// }
 
-void switch_modes(){
-  calculate_flpi();
-  calculate_mpki();
-  if(mpki_counter > MPKI_THRESHOLD || flpi_counter > FLPI_THRESHOLD){
-    circ_queue = true;
-  }
-  else{
-    circ_queue = false;
-  }
-}
+// void switch_modes(){
+//   calculate_flpi();
+//   calculate_mpki();
+//   if(mpki_counter > MPKI_THRESHOLD || flpi_counter > FLPI_THRESHOLD){
+//     circ_queue = true;
+//   }
+//   else{
+//     circ_queue = false;
+//   }
+// }
 /***************************************/
 
 // Get ops from the uop cache.
