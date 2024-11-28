@@ -31,6 +31,7 @@ extern "C" {
 #define UOP_QUEUE_STAGE_LENGTH UOP_QUEUE_LENGTH
 #define STAGE_MAX_OP_COUNT ISSUE_WIDTH  // The bandwidth of the next, consuming stage (map stage)
 // TODO(peterbraun): Check if the ISSUE_WIDTH can be less than the uop cache issue bandwidth
+
 /**************Octavio*******************/
 // change later
 #define MPKI_THRESHOLD 1.0
@@ -38,9 +39,10 @@ extern "C" {
 
 // Uop Queue Variables
 std::deque<Stage_Data*> q {};
-CircularQueue<Stage_Data*> cq(3);
 
-// Add circular queue here
+// The circular queue needs to be initialized to the size of the instruction queue
+CircularQueue<Stage_Data*> cq(UOP_QUEUE_STAGE_LENGTH);  // The circular queue containing the instructions
+
 // Add current mode (SWQUE or queue)
 /**************Octavio*******************/
 int mpki_counter = 0;
@@ -64,6 +66,7 @@ Based off how critical the path of the process
 is for assigning priority to SWQUE instruction
 ***************************************/
 
+// Initialize either the queue or the circular queue here
 void init_uop_queue_stage() {
   char tmp_name[MAX_STR_LENGTH + 1];
   for (uns ii = 0; ii < UOP_QUEUE_STAGE_LENGTH; ii++) {
