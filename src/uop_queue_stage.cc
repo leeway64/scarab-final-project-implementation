@@ -215,15 +215,34 @@ void recover_uop_queue_stage(void) {
 }
 
 Stage_Data* uop_queue_stage_get_latest_sd(void) {
-  if (q.size()) {
-    return q.front();
+  if (circ_queue)
+  {
+    if (cq.get_size())
+    {
+      return cq.get_front();
+    }
   }
+  else
+  {
+    if (q.size())
+    {
+      return q.front();
+    }    
+  }
+  
   ASSERT(0, free_sds.size() == UOP_QUEUE_STAGE_LENGTH);
   return free_sds.front();
 };
 
 int get_uop_queue_stage_length(void) {
-  return q.size();
+  if (circ_queue)
+  {
+    return cq.get_size();
+  }
+  else
+  {
+    return q.size();
+  }
 }
 
 // This is called each cycle. If size increased, log the time.
