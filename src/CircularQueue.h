@@ -1,7 +1,9 @@
 #include <vector>
 
-// This class implements a circular buffer. Refer to this Wikipedia page for more information: https://en.wikipedia.org/wiki/Circular_buffer
-// This implementation was heavily influenced by the ideas laid out in the Circular buffer Wikipedia page.
+// This class implements a circular buffer. Refer to this Wikipedia page for more information:
+// https://en.wikipedia.org/wiki/Circular_buffer
+// This implementation was heavily influenced by the ideas laid out in the Circular buffer
+// Wikipedia page.
 template<class T>
 class CircularQueue
 {
@@ -46,6 +48,8 @@ class CircularQueue
         // Return an iterator pointing to one element past the back of the queue
         auto end();
 
+        auto erase(auto iter);
+
     private:
         // The vector containing all the values in the circular queue
         std::vector<T> circularQueue{};
@@ -57,10 +61,6 @@ class CircularQueue
         
         int back_index = 0;
         int front_index = 0;
-
-        // Populate a vector containing all the values of the circular queue. The first value of the
-        // vector is the front of the circular queue, and the last value is the back of the circular queue.
-        void unroll_queue();
 
         std::vector<T> unrolled_queue{};
 };
@@ -94,12 +94,12 @@ void CircularQueue<T>::push(T value)
     }
     else
     {
-        int index = counter % this->max_size;
+        int index = this->counter % this->max_size;
         auto position = this->circularQueue.begin() + index;
         this->circularQueue.erase(position);
         this->circularQueue.insert(position, value);
 
-        this->back_index = (counter + 1) % max_size;
+        this->back_index = (this->counter + 1) % max_size;
     }
 
     this->counter++;
@@ -109,8 +109,8 @@ void CircularQueue<T>::push(T value)
 template<class T>
 T CircularQueue<T>::pop()
 {
-    T value = this->circularQueue[back_index];
-    auto position = this->circularQueue.begin() + back_index;
+    T value = this->circularQueue[this->back_index];
+    auto position = this->circularQueue.begin() + this->back_index;
 
     this->circularQueue.erase(position);
     
@@ -153,37 +153,26 @@ T CircularQueue<T>::get_front()
 template<class T>
 T CircularQueue<T>::get_back()
 {
-    return this->circularQueue[back_index];
-}
-
-template<class T>
-void CircularQueue<T>::unroll_queue()
-{
-    unrolled_queue = {};
-    int i = this->front_index;
-    while (i != back_index)
-    {
-        this->unrolled_queue.push_back(this->circularQueue[i]);
-        --i;
-
-        if (i < 0)
-        {
-            i = this->circularQueue.size() - 1;
-        }
-    }
-    this->unrolled_queue.push_back(this->circularQueue[i]);
+    return this->circularQueue[this->back_index];
 }
 
 template<class T>
 auto CircularQueue<T>::begin()
 {
-    CircularQueue<T>::unroll_queue();
-    return this->unrolled_queue.begin();
+    return this->circularQueue.begin();
 }
 
 template<class T>
 auto CircularQueue<T>::end()
 {
-    CircularQueue<T>::unroll_queue();
-    return this->unrolled_queue.end();
+    return this->circularQueue.end();
+}
+
+
+template<class T>
+auto CircularQueue<T>::erase(auto iter)
+{
+    this->counter--;
+    this->front_index = (this->counter - 1) % max_size;
+    return this->circularQueue.erase(iter);
 }

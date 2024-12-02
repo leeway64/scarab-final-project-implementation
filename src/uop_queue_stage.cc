@@ -129,11 +129,20 @@ void calculate_mpki(){
 void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
   // Update both queue and circular queue as well (NOTE FOR LEEWAY)
-  if (q.size() && q.front()->op_count == 0) {
-    free_sds.push_back(q.front());
-    q.pop_front();
-    ASSERT(0, !q.size() || q.front()->op_count > 0);  // Only one stage is consumed per cycle
+  if (circ_queue) {
+    if (cq.get_size() && cq.get_back()->op_count == 0) {
+      free_sds.push_back(cq.get_back());
+      cq.pop();
+      ASSERT(0, !cq.get_size() || cq.get_front()->op_count > 0);
+    }
+  } else {
+    if (q.size() && q.front()->op_count == 0) {
+      free_sds.push_back(q.front());
+      q.pop_front();
+      ASSERT(0, !q.size() || q.front()->op_count > 0);  // Only one stage is consumed per cycle
+    }
   }
+
   update_uop_queue_fill_time_stat(); // gets updated the cycle after the size changes
 
   if (uopq_off_path) {
@@ -170,8 +179,9 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
         src_sd->op_count--;
         decode_stage_process_op(src_op);
         DEBUG(0, "Fetching opnum=%llu\n", src_op->op_num);
-        if (src_op->off_path)
+        if (src_op->off_path) {
           uopq_off_path = true;
+        }
       }
     }
   }
@@ -181,33 +191,65 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
 
   if (new_sd->op_count > 0) {
     free_sds.pop_front();
-    q.push_back(new_sd);
+    if (circ_queue) {
+      cq.push(new_sd);
+    }
+    else {
+      q.push_back(new_sd);
+    }
   }
 }
 
 void recover_uop_queue_stage(void) {
   uopq_off_path = false;
-  for (std::deque<Stage_Data*>::iterator it = q.begin(); it != q.end();) {
-    Stage_Data* sd = *it;
-    sd->op_count = 0;
-    for (uns op_idx = 0; op_idx < STAGE_MAX_OP_COUNT; op_idx++) {
-      Op* op = sd->ops[op_idx];
-      if (op && FLUSH_OP(op)) {
-        ASSERT(op->proc_id, op->off_path);
-        free_op(op);
-        sd->ops[op_idx] = NULL;
-      } else if (op) {
-        sd->op_count++;
+  if (circ_queue) {
+    for (auto it = cq.begin(); it != cq.end();) {
+      Stage_Data* sd = *it;
+      sd->op_count = 0;
+      for (uns op_index = 0; op_index < STAGE_MAX_OP_COUNT; op_index++) {
+        Op* op = sd->ops[op_index];
+        if (op && FLUSH_OP(op)) {
+          ASSERT(op->proc_id, op->off_path);
+          free_op(op);
+          sd->ops[op_index] = NULL;
+        } else if (op)
+        {
+          sd->op_count++;
+        }
+      }
+
+      if (sd->op_count == 0) {
+        free_sds.push_back(sd);
+        it = cq.erase(it);
+      } else {
+        ++it;
       }
     }
+  } else {
+    for (std::deque<Stage_Data*>::iterator it = q.begin(); it != q.end();) {
+      Stage_Data* sd = *it;
+      sd->op_count = 0;
+      for (uns op_idx = 0; op_idx < STAGE_MAX_OP_COUNT; op_idx++) {
+        Op* op = sd->ops[op_idx];
+        if (op && FLUSH_OP(op)) {
+          ASSERT(op->proc_id, op->off_path);
+          free_op(op);
+          sd->ops[op_idx] = NULL;
+        } else if (op) {
+          sd->op_count++;
+        }
+      }
 
-    if (sd->op_count == 0) {  // entire stage data was off-path
-      free_sds.push_back(sd);
-      it = q.erase(it);
-    } else {
-      ++it;
+      if (sd->op_count == 0) {  // entire stage data was off-path
+        free_sds.push_back(sd);
+        it = q.erase(it);
+      } else {
+        ++it;
+      }
     }
   }
+  
+
   // TODO(peterbraun): This ignores effect of fetch barriers.
   last_recovery_cycle = cycle_count;
   last_recovery_pw = pw_count;
@@ -215,32 +257,24 @@ void recover_uop_queue_stage(void) {
 }
 
 Stage_Data* uop_queue_stage_get_latest_sd(void) {
-  if (circ_queue)
-  {
-    if (cq.get_size())
-    {
+  if (circ_queue) {
+    if (cq.get_size()) {
       return cq.get_front();
     }
-  }
-  else
-  {
-    if (q.size())
-    {
+  } else {
+    if (q.size()) {
       return q.front();
     }    
   }
-  
+
   ASSERT(0, free_sds.size() == UOP_QUEUE_STAGE_LENGTH);
   return free_sds.front();
 };
 
 int get_uop_queue_stage_length(void) {
-  if (circ_queue)
-  {
+  if (circ_queue) {
     return cq.get_size();
-  }
-  else
-  {
+  } else {
     return q.size();
   }
 }
