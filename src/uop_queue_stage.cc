@@ -49,6 +49,7 @@ int mpki_counter = 0;
 int mpki = 0;
 int flpi = 0;
 bool circ_queue = false;
+int low_priority_issues = 0;
 /***************************************/
 std::deque<Stage_Data*> free_sds {};
 
@@ -106,23 +107,34 @@ void calculate_mpki(){
 }
 
 // Uncomment after circular queue has been implemented
-// void calculate_flpi(){
-//   if (issued_count>0){
-//     // define low priority later when circulare queue is ready to go 
-//     flpi = issued_count/low_priority_issues;
-//   }
-// }
+void calculate_flpi(){
+  if (issued_count > 0){
+    // define low priority later when circulare queue is ready to go 
+    flpi = low_priority_issues/issued_count;
+  }
+}
 
-// void switch_modes(){
-//   calculate_flpi();
-//   calculate_mpki();
-//   if(mpki_counter > MPKI_THRESHOLD || flpi_counter > FLPI_THRESHOLD){
-//     circ_queue = true;
-//   }
-//   else{
-//     circ_queue = false;
-//   }
-// }
+void count_priority_region(){
+  // check if the queue has in its lower quartile
+  if(cq.get_size() > cq.get_max_size() * .75){
+    // count how many are in the lower issue queue
+    low_priority_issues++;
+  }
+  else{
+    // no priority issue
+    low_priority_issues = 0;
+  }
+}
+void switch_modes(){
+  calculate_flpi();
+  calculate_mpki();
+  if(mpki_counter > MPKI_THRESHOLD || flpi_counter > FLPI_THRESHOLD){
+    circ_queue = true;
+  }
+  else{
+    circ_queue = false;
+  }
+}
 /***************************************/
 
 // Get ops from the uop cache.
