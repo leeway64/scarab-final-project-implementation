@@ -128,7 +128,7 @@ void count_priority_region(){
 void switch_modes(){
   calculate_flpi();
   calculate_mpki();
-  if(mpki_counter > MPKI_THRESHOLD || flpi_counter > FLPI_THRESHOLD){
+  if(mpki_counter > MPKI_THRESHOLD || flpi > FLPI_THRESHOLD){
     circ_queue = true;
   }
   else{
@@ -162,7 +162,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
   }
   // If the queue cannot accomodate more ops, stall.
   // Switch to SWQUE (NOTE FOR Octavio)
-  if (q.size() >= UOP_QUEUE_STAGE_LENGTH) {
+  if ((circ_queue && cq.get_size() >= UOP_QUEUE_STAGE_LENGTH) || (!circ_queue && q.size() >= UOP_QUEUE_STAGE_LENGTH)) {
     // Backend stalls may force fetch to stall.
     if (!uopq_off_path) {
       STAT_EVENT(dec->proc_id, UOPQ_STAGE_STALLED);
@@ -293,15 +293,34 @@ int get_uop_queue_stage_length(void) {
 
 // This is called each cycle. If size increased, log the time.
 void update_uop_queue_fill_time_stat() {
-  if (q.size() > prev_q_size) {
-    prev_q_size = q.size();
-    if (q.size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED) {
-      Counter* new_cycle_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[q.size()-1].cycles));
-      *new_cycle_entry = cycle_count - last_recovery_cycle;
-      Counter* new_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[q.size()-1].pws));
-      *new_pw_entry = pw_count - last_recovery_pw;
-      Counter* new_unique_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[q.size()-1].unique_pws));
-      *new_unique_pw_entry = unique_pws_since_recovery;
+  if (circ_queue)
+  {
+    if (cq.get_size() > prev_q_size)
+    {
+      prev_q_size = cq.get_size();
+      if (cq.get_size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED)
+      {
+        Counter* new_cycle_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[cq.get_size() - 1].cycles));
+        *new_cycle_entry = cycle_count - last_recovery_cycle;
+        Counter* new_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[cq.get_size() - 1].pws));
+        *new_pw_entry = pw_count - last_recovery_pw;
+        Counter* new_unique_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[cq.get_size() - 1].unique_pws));
+        *new_unique_pw_entry = unique_pws_since_recovery;
+      }
+    }
+  }
+  else
+  {
+    if (q.size() > prev_q_size) {
+      prev_q_size = q.size();
+      if (q.size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED) {
+        Counter* new_cycle_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[q.size()-1].cycles));
+        *new_cycle_entry = cycle_count - last_recovery_cycle;
+        Counter* new_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[q.size()-1].pws));
+        *new_pw_entry = pw_count - last_recovery_pw;
+        Counter* new_unique_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[q.size()-1].unique_pws));
+        *new_unique_pw_entry = unique_pws_since_recovery;
+      }
     }
   }
 }
