@@ -32,8 +32,8 @@ class CircularQueue
         // to the next value in the sequence.
         void push(T value);
 
-        // Remove a value from the back of the circular buffer. In other words, this circular buffer
-        // maintains a first in, first out policy.
+        // Remove and return the value from the back of the circular buffer. In other words, this
+        // circular buffer maintains a first in, first out policy.
         T pop();
 
         // Return the value at the front of the queue
@@ -41,6 +41,14 @@ class CircularQueue
 
         // Return the value at the back of the queue
         T get_back();
+
+        // Return the last value of the vector holding the circular queue. This might not
+        // necessarily be the back of the circular queue
+        T get_last();
+
+        // Remove and return the last value of the vector holding the circular queue (not
+        // necessarily the value of the back of the circular queue)
+        T pop_last();
 
         // Return an iterator pointing to the front of the queue
         auto begin();
@@ -81,7 +89,7 @@ CircularQueue<T>::CircularQueue(std::vector<T> list)
     this->max_size = list.size();
     this->circularQueue.reserve(this->max_size);
     this->counter = this->max_size;
-    this->front_index = (this->counter - 1) % max_size;
+    this->front_index = (this->counter - 1) % this->max_size;
     this->back_index = 0;
 }
 
@@ -99,11 +107,11 @@ void CircularQueue<T>::push(T value)
         this->circularQueue.erase(position);
         this->circularQueue.insert(position, value);
 
-        this->back_index = (this->counter + 1) % max_size;
+        this->back_index = (this->counter + 1) % this->max_size;
     }
 
     this->counter++;
-    this->front_index = (this->counter - 1) % max_size;
+    this->front_index = (this->counter - 1) % this->max_size;
 }
 
 template<class T>
@@ -157,6 +165,25 @@ T CircularQueue<T>::get_back()
 }
 
 template<class T>
+T CircularQueue<T>::get_last()
+{
+    return this->circularQueue.back();
+}
+
+template<class T>
+T CircularQueue<T>::pop_last()
+{
+    this->counter--;
+    if (this->front_index == this->max_size - 1)
+    {
+        this->front_index = (this->counter - 1) % this->max_size;
+    }
+    auto last = this->circularQueue.back();
+    this->circularQueue.pop_back();
+    return last;
+}
+
+template<class T>
 auto CircularQueue<T>::begin()
 {
     return this->circularQueue.begin();
@@ -173,6 +200,6 @@ template<class T>
 auto CircularQueue<T>::erase(auto iter)
 {
     this->counter--;
-    this->front_index = (this->counter - 1) % max_size;
+    this->front_index = (this->counter - 1) % this->max_size;
     return this->circularQueue.erase(iter);
 }

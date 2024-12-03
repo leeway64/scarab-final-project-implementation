@@ -142,10 +142,10 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
   // Update both queue and circular queue as well (NOTE FOR LEEWAY)
   if (circ_queue) {
-    if (cq.get_size() && cq.get_back()->op_count == 0) {
-      free_sds.push_back(cq.get_back());
-      cq.pop();
-      ASSERT(0, !cq.get_size() || cq.get_front()->op_count > 0);
+    if (cq.get_size() && cq.get_last()->op_count == 0) {
+      free_sds.push_back(cq.get_last());
+      cq.pop_last();
+      ASSERT(0, !cq.get_size() || cq.get_last()->op_count > 0);
     }
   } else {
     if (q.size() && q.front()->op_count == 0) {
@@ -271,7 +271,7 @@ void recover_uop_queue_stage(void) {
 Stage_Data* uop_queue_stage_get_latest_sd(void) {
   if (circ_queue) {
     if (cq.get_size()) {
-      return cq.get_front();
+      return cq.get_last();
     }
   } else {
     if (q.size()) {
