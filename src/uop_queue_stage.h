@@ -13,8 +13,7 @@ extern "C" {
 #include "decode_stage.h"
 #include "uop_cache.h"
 
-// Change these Thresh Holds later on (Octavio Villalobos)
-#define MPKI_THRESHOLD 1.0 
+#define MPKI_THRESHOLD 0.04
 #define FLPI_THRESHOLD 1 
 
 // struct mode_switch_measures{

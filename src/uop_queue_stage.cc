@@ -32,11 +32,6 @@ extern "C" {
 #define STAGE_MAX_OP_COUNT ISSUE_WIDTH  // The bandwidth of the next, consuming stage (map stage)
 // TODO(peterbraun): Check if the ISSUE_WIDTH can be less than the uop cache issue bandwidth
 
-/**************Octavio*******************/
-// change later
-#define MPKI_THRESHOLD 1.0
-/***************************************/
-
 // Uop Queue Variables
 std::deque<Stage_Data*> q {};
 
@@ -44,13 +39,12 @@ std::deque<Stage_Data*> q {};
 CircularQueue<Stage_Data*> cq(UOP_QUEUE_STAGE_LENGTH);  // The circular queue containing the instructions
 
 // Add current mode (SWQUE or queue)
-/**************Octavio*******************/
 int mpki_counter = 0;
 int mpki = 0;
 int flpi = 0;
 bool circ_queue = false;
 int low_priority_issues = 0;
-/***************************************/
+
 std::deque<Stage_Data*> free_sds {};
 
 // For uop queue fill stat
@@ -61,7 +55,7 @@ bool uopq_off_path;
 
 static inline void update_uop_queue_fill_time_stat(void);
 
-/**************Octavio*******************
+/**************************************
 Create a function that calcualtes priority
 Based off how critical the path of the process 
 is for assigning priority to SWQUE instruction
@@ -96,7 +90,6 @@ void init_uop_queue_stage() {
   }
 }
 
-/**************Octavio*******************/
 void calculate_mpki(){
   if((icache_miss_count - dcache_miss_count) > 0){
     mpki_counter = icache_miss_count - (icache_miss_count - dcache_miss_count);
@@ -141,7 +134,7 @@ void switch_modes(){
 void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
   // Update both queue and circular queue as well (NOTE FOR LEEWAY)
-  if (circ_queue) {
+  if (!circ_queue) {
     if (cq.get_size() && cq.get_last()->op_count == 0) {
       free_sds.push_back(cq.get_last());
       cq.pop_last();
@@ -161,8 +154,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
     STAT_EVENT(dec->proc_id, UOPQ_STAGE_OFF_PATH);
   }
   // If the queue cannot accomodate more ops, stall.
-  // Switch to SWQUE (NOTE FOR Octavio)
-  if ((circ_queue && cq.get_size() >= UOP_QUEUE_STAGE_LENGTH) || (!circ_queue && q.size() >= UOP_QUEUE_STAGE_LENGTH)) {
+  if ((!circ_queue && (uns)cq.get_size() >= UOP_QUEUE_STAGE_LENGTH) || (circ_queue && q.size() >= UOP_QUEUE_STAGE_LENGTH)) {
     // Backend stalls may force fetch to stall.
     if (!uopq_off_path) {
       STAT_EVENT(dec->proc_id, UOPQ_STAGE_STALLED);
@@ -203,7 +195,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
 
   if (new_sd->op_count > 0) {
     free_sds.pop_front();
-    if (circ_queue) {
+    if (!circ_queue) {
       cq.push(new_sd);
     }
     else {
@@ -214,7 +206,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
 
 void recover_uop_queue_stage(void) {
   uopq_off_path = false;
-  if (circ_queue) {
+  if (!circ_queue) {
     for (auto it = cq.begin(); it != cq.end();) {
       Stage_Data* sd = *it;
       sd->op_count = 0;
@@ -269,7 +261,7 @@ void recover_uop_queue_stage(void) {
 }
 
 Stage_Data* uop_queue_stage_get_latest_sd(void) {
-  if (circ_queue) {
+  if (!circ_queue) {
     if (cq.get_size()) {
       return cq.get_last();
     }
@@ -284,7 +276,7 @@ Stage_Data* uop_queue_stage_get_latest_sd(void) {
 };
 
 int get_uop_queue_stage_length(void) {
-  if (circ_queue) {
+  if (!circ_queue) {
     return cq.get_size();
   } else {
     return q.size();
@@ -293,13 +285,10 @@ int get_uop_queue_stage_length(void) {
 
 // This is called each cycle. If size increased, log the time.
 void update_uop_queue_fill_time_stat() {
-  if (circ_queue)
-  {
-    if (cq.get_size() > prev_q_size)
-    {
+  if (!circ_queue) {
+    if ((std::size_t)cq.get_size() > prev_q_size) {
       prev_q_size = cq.get_size();
-      if (cq.get_size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED)
-      {
+      if (cq.get_size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED) {
         Counter* new_cycle_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[cq.get_size() - 1].cycles));
         *new_cycle_entry = cycle_count - last_recovery_cycle;
         Counter* new_pw_entry = static_cast<Counter*>(sl_list_add_tail(&uop_queue_fill_time.time_for_size[cq.get_size() - 1].pws));
@@ -308,9 +297,7 @@ void update_uop_queue_fill_time_stat() {
         *new_unique_pw_entry = unique_pws_since_recovery;
       }
     }
-  }
-  else
-  {
+  } else {
     if (q.size() > prev_q_size) {
       prev_q_size = q.size();
       if (q.size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED) {

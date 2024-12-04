@@ -56,7 +56,7 @@ class CircularQueue
         // Return an iterator pointing to one element past the back of the queue
         auto end();
 
-        auto erase(auto iter);
+        auto erase(typename std::vector<T>::iterator iter);
 
     private:
         // The vector containing all the values in the circular queue
@@ -197,7 +197,7 @@ auto CircularQueue<T>::end()
 
 
 template<class T>
-auto CircularQueue<T>::erase(auto iter)
+auto CircularQueue<T>::erase(typename std::vector<T>::iterator iter)
 {
     this->counter--;
     this->front_index = (this->counter - 1) % this->max_size;
