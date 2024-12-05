@@ -107,33 +107,55 @@ void calculate_flpi(){
   }
 }
 
+/******************************Updated rn*******************************************/ 
+
 void count_priority_region(){
   // check if the queue has in its lower quartile
-  if(cq.get_size() > cq.get_max_size() * .75){
-    // count how many are in the lower issue queue
-    low_priority_issues++;
-  }
-  else{
-    // no priority issue
-    low_priority_issues = 0;
+  if (circ_queue){
+    if(cq.get_size() > cq.get_max_size() * .75){
+      // count how many are in the lower issue queue
+      low_priority_issues++;
+    }
+    else{
+      // no priority issue
+      low_priority_issues = 0;
+    }
   }
 }
+
 void switch_modes(){
   calculate_flpi();
   calculate_mpki();
+  bool old_mode = circ_queue;
   if(mpki_counter > MPKI_THRESHOLD || flpi > FLPI_THRESHOLD){
     circ_queue = true;
   }
   else{
     circ_queue = false;
   }
+  if(old_mode != circ_queue){
+    if(!old_mode){
+      while (q.size() > 0) {
+        cq.push(q.front());
+        q.pop_front();
+      }
+    }
+    else{
+      while (cq.get_size() > 0) {
+        q.push_back(cq.get_first());
+        cq.pop_first();
+      }
+    }
+  }
 }
+/******************************Updated rn*******************************************/ 
 /***************************************/
 
 // Get ops from the uop cache.
 void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
   // Update both queue and circular queue as well (NOTE FOR LEEWAY)
+  switch_modes();
   if (!circ_queue) {
     if (cq.get_size() && cq.get_last()->op_count == 0) {
       free_sds.push_back(cq.get_last());
