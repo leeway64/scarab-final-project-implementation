@@ -134,13 +134,14 @@ void switch_modes(){
 void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
   // Update both queue and circular queue as well (NOTE FOR LEEWAY)
-  if (!circ_queue) {
+  if (circ_queue) {
     if (cq.get_size() && cq.get_last()->op_count == 0) {
       free_sds.push_back(cq.get_last());
       cq.pop_last();
       ASSERT(0, !cq.get_size() || cq.get_last()->op_count > 0);
     }
   } else {
+    cq.get_size();
     if (q.size() && q.front()->op_count == 0) {
       free_sds.push_back(q.front());
       q.pop_front();
@@ -154,7 +155,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
     STAT_EVENT(dec->proc_id, UOPQ_STAGE_OFF_PATH);
   }
   // If the queue cannot accomodate more ops, stall.
-  if ((!circ_queue && (uns)cq.get_size() >= UOP_QUEUE_STAGE_LENGTH) || (circ_queue && q.size() >= UOP_QUEUE_STAGE_LENGTH)) {
+  if ((circ_queue && (uns)cq.get_size() >= UOP_QUEUE_STAGE_LENGTH) || (!circ_queue && q.size() >= UOP_QUEUE_STAGE_LENGTH)) {
     // Backend stalls may force fetch to stall.
     if (!uopq_off_path) {
       STAT_EVENT(dec->proc_id, UOPQ_STAGE_STALLED);
@@ -195,7 +196,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
 
   if (new_sd->op_count > 0) {
     free_sds.pop_front();
-    if (!circ_queue) {
+    if (circ_queue) {
       cq.push(new_sd);
     }
     else {
@@ -206,7 +207,7 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
 
 void recover_uop_queue_stage(void) {
   uopq_off_path = false;
-  if (!circ_queue) {
+  if (circ_queue) {
     for (auto it = cq.begin(); it != cq.end();) {
       Stage_Data* sd = *it;
       sd->op_count = 0;
@@ -261,7 +262,7 @@ void recover_uop_queue_stage(void) {
 }
 
 Stage_Data* uop_queue_stage_get_latest_sd(void) {
-  if (!circ_queue) {
+  if (circ_queue) {
     if (cq.get_size()) {
       return cq.get_last();
     }
@@ -276,7 +277,7 @@ Stage_Data* uop_queue_stage_get_latest_sd(void) {
 };
 
 int get_uop_queue_stage_length(void) {
-  if (!circ_queue) {
+  if (circ_queue) {
     return cq.get_size();
   } else {
     return q.size();
@@ -285,7 +286,7 @@ int get_uop_queue_stage_length(void) {
 
 // This is called each cycle. If size increased, log the time.
 void update_uop_queue_fill_time_stat() {
-  if (!circ_queue) {
+  if (circ_queue) {
     if ((std::size_t)cq.get_size() > prev_q_size) {
       prev_q_size = cq.get_size();
       if (cq.get_size() <= UOP_QUEUE_CAPACITY_MAX_MEASURED) {
