@@ -42,7 +42,7 @@ CircularQueue<Stage_Data*> cq(UOP_QUEUE_STAGE_LENGTH);  // The circular queue co
 int mpki_counter = 0;
 int mpki = 0;
 int flpi = 0;
-bool circ_queue = false;
+bool circ_queue = true;
 int low_priority_issues = 0;
 
 std::deque<Stage_Data*> free_sds {};
@@ -133,7 +133,6 @@ void switch_modes(){
 // Get ops from the uop cache.
 void update_uop_queue_stage(Stage_Data* src_sd) {
   // If the front of the queue was consumed, remove that stage.
-  // Update both queue and circular queue as well (NOTE FOR LEEWAY)
   if (circ_queue) {
     if (cq.get_size() && cq.get_last()->op_count == 0) {
       free_sds.push_back(cq.get_last());
@@ -167,7 +166,6 @@ void update_uop_queue_stage(Stage_Data* src_sd) {
   }
 
   // Build a new sd and place new ops into the queue.
-  // ALso update for our other queue as well (NOTE FOR LEEWAY)
   Stage_Data* new_sd = free_sds.front();
   ASSERT(0, src_sd->op_count <= (int)STAGE_MAX_OP_COUNT);
   if (src_sd->op_count) {
