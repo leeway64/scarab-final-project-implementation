@@ -77,58 +77,58 @@ template<class T>
 CircularQueue<T>::CircularQueue(int max_size)
 {
     this->max_size = max_size;
-    this->circularQueue.reserve(max_size);
-    this->back_index = 0;
-    this->front_index = (this->counter - 1) % max_size;
+    circularQueue.reserve(max_size);
+    back_index = 0;
+    front_index = (counter - 1) % max_size;
 }
 
 template <class T>
 CircularQueue<T>::CircularQueue(std::vector<T> list)
 {
-    this->circularQueue = list;
-    this->max_size = list.size();
-    this->circularQueue.reserve(this->max_size);
-    this->counter = this->max_size;
-    this->front_index = (this->counter - 1) % this->max_size;
-    this->back_index = 0;
+    circularQueue = list;
+    max_size = list.size();
+    circularQueue.reserve(max_size);
+    counter = max_size;
+    front_index = (counter - 1) % max_size;
+    back_index = 0;
 }
 
 template<class T>
 void CircularQueue<T>::push(T value)
 {
-    if (this->counter < this->max_size)
+    if (counter < max_size)
     {
-        this->circularQueue.push_back(value);
+        circularQueue.push_back(value);
     }
     else
     {
-        int index = this->counter % this->max_size;
-        auto position = this->circularQueue.begin() + index;
-        this->circularQueue.erase(position);
-        this->circularQueue.insert(position, value);
+        int index = counter % max_size;
+        auto position = circularQueue.begin() + index;
+        circularQueue.erase(position);
+        circularQueue.insert(position, value);
 
-        this->back_index = (this->counter + 1) % this->max_size;
+        back_index = (counter + 1) % max_size;
     }
 
-    this->counter++;
-    this->front_index = (this->counter - 1) % this->max_size;
+    counter++;
+    front_index = (counter - 1) % max_size;
 }
 
 template<class T>
 T CircularQueue<T>::pop()
 {
-    T value = this->circularQueue[this->back_index];
-    auto position = this->circularQueue.begin() + this->back_index;
+    T value = circularQueue[back_index];
+    auto position = circularQueue.begin() + back_index;
 
-    this->circularQueue.erase(position);
+    circularQueue.erase(position);
     
-    if (this->circularQueue.size() == 1)
+    if (circularQueue.size() == 1)
     {
-        this->front_index = 0;
+        front_index = 0;
     }
-    if (this->back_index > this->circularQueue.size() - 1)
+    if (back_index > circularQueue.size() - 1)
     {
-        this->back_index = 0;
+        back_index = 0;
     }
 
     return value;
@@ -137,69 +137,69 @@ T CircularQueue<T>::pop()
 template<class T>
 std::vector<T> CircularQueue<T>::get_queue()
 {
-    return this->circularQueue;
+    return circularQueue;
 }
 
 template<class T>
 int CircularQueue<T>::get_size()
 {
-    return this->circularQueue.size();
+    return circularQueue.size();
 }
 
 template<class T>
 int CircularQueue<T>::get_max_size()
 {
-    return this->max_size;
+    return max_size;
 }
 
 template<class T>
 T CircularQueue<T>::get_front()
 {
-    return this->circularQueue[this->front_index];
+    return circularQueue[front_index];
 }
 
 template<class T>
 T CircularQueue<T>::get_back()
 {
-    return this->circularQueue[this->back_index];
+    return circularQueue[back_index];
 }
 
 template<class T>
 T CircularQueue<T>::get_last()
 {
-    return this->circularQueue.back();
+    return circularQueue.back();
 }
 
 template<class T>
 T CircularQueue<T>::pop_last()
 {
-    this->counter--;
-    if (this->front_index == this->max_size - 1)
+    counter--;
+    if (front_index == max_size - 1)
     {
-        this->front_index = (this->counter - 1) % this->max_size;
+        front_index = (counter - 1) % max_size;
     }
-    auto last = this->circularQueue.back();
-    this->circularQueue.pop_back();
+    auto last = circularQueue.back();
+    circularQueue.pop_back();
     return last;
 }
 
 template<class T>
 auto CircularQueue<T>::begin()
 {
-    return this->circularQueue.begin();
+    return circularQueue.begin();
 }
 
 template<class T>
 auto CircularQueue<T>::end()
 {
-    return this->circularQueue.end();
+    return circularQueue.end();
 }
 
 
 template<class T>
 auto CircularQueue<T>::erase(typename std::vector<T>::iterator iter)
 {
-    this->counter--;
-    this->front_index = (this->counter - 1) % this->max_size;
-    return this->circularQueue.erase(iter);
+    counter--;
+    front_index = (counter - 1) % max_size;
+    return circularQueue.erase(iter);
 }
